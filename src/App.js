@@ -4,6 +4,7 @@ import React, { Component } from 'react';
 import blueprintCss from '@blueprintjs/core/dist/blueprint.css';
 
 import apiKey from './api-key';
+import Commute from './Commute'
 
 GoogleMapsLoader.KEY = apiKey;
 GoogleMapsLoader.LIRARIES = ['directions'];
@@ -25,9 +26,9 @@ export default class App extends Component {
   }
   render() {
     if (this.state.loaded) {
-      return (<p>Loaded!</p>);
+      return (<Commute GoogleMaps={this.state.googleApi.maps} />);
     } else {
       return (<p>Loading...</p>);  
     }
   }
-}
+};
