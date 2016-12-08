@@ -14,6 +14,14 @@ export default class DirectionsLoader {
     this.numSuccessfulRequests = 0;
   }
 
+  clear() {
+    if (this.loadTimeout) {
+      clearTimeout(this.loadTimeout);
+      this.loadTimeout = null;
+      this.requestQueue = [];
+    }
+  }
+
   loadRouteAtDate(date, navigateToWork, loadFn) {
     this.loadRoute(date, 'bestguess', navigateToWork, loadFn);
     this.loadRoute(date, 'pessimistic', navigateToWork, loadFn);
@@ -80,5 +88,4 @@ export default class DirectionsLoader {
     console.log(`loading for ${request.request.drivingOptions.departureTime}, ${request.request.drivingOptions.trafficModel}`);
     this.directionsService.route(request.request, wrappedLoadFn);
   }
-
 };

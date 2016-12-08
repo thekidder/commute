@@ -1,8 +1,12 @@
 import React, { Component } from 'react';
+import moment from 'moment';
 import throttle from 'lodash.throttle';
 
 import Chart from './Chart';
+import DatePicker from './DatePicker';
 import DirectionsLoader from './DirectionsLoader';
+
+const intervalMinutes = 30;
 
 function getDuration(response) {
   return response.routes[0].legs[0].duration_in_traffic.value;
@@ -15,18 +19,59 @@ export default class Commute extends Component {
     this.directionsLoader = new DirectionsLoader(new this.props.GoogleMaps.DirectionsService);
 
     this.state = {
+      currentDate: moment(),
       directionsResults: {}
     };
 
-    this.load(new Date('December 8 2016 06:00:00'), new Date('December 8 2016 13:00:00'), true);
-    this.load(new Date('December 8 2016 13:30:00'), new Date('December 8 2016 20:00:00'), false);
+    this.loadForDate(this.state.currentDate);
+  }
+
+  componentDidUpdate(prevProps, prevState) {
+    if (!prevState.currentDate.isSame(this.state.currentDate)) {
+      this.directionsLoader.clear();
+      this.setState({ directionsResults: {} });
+      this.loadForDate(this.state.currentDate);
+    }
+  }
+
+  loadForDate(date) {
+    // queue loading all data for the given date. ensures we don't load anything before the current
+    // time, which is not allowed by the google maps api for obvious reasons
+
+    const now = moment();
+    const remainder = intervalMinutes - now.minute() % intervalMinutes;
+    now.add(remainder, 'minutes');
+
+    let beginOfDay = date.clone().set({
+      hour: 6,
+      minute: 0
+    });
+
+    const endOfDay = date.clone().set({
+      hour: 20,
+      minute: 0
+    });
+
+    let middleOfDay = date.clone().set({
+      hour: 13,
+      minute: 0
+    });
+
+    if(now.isBefore(middleOfDay)) {
+      beginOfDay = moment.max(now, beginOfDay);
+      this.load(beginOfDay, middleOfDay, true);
+    }
+
+    middleOfDay.add(intervalMinutes, 'minutes');
+    middleOfDay = moment.max(now, middleOfDay);
+    if (middleOfDay.isBefore(endOfDay)) {
+      this.load(middleOfDay, endOfDay, false);
+    }
   }
 
   load(startDate, endDate, navigateToWork) {
-    const intervalMinutes = 30;
-
-    for (var date = startDate; date <= endDate; date = new Date(date.getTime() + intervalMinutes * 60 * 1000)) {
-      this.directionsLoader.loadRouteAtDate(date, navigateToWork, this.loaded.bind(this));
+    for (var date = startDate; date <= endDate; date.add(intervalMinutes, 'minutes')) {
+      this.directionsLoader.loadRouteAtDate(date.toDate(), navigateToWork, this.loaded.bind(this));
     }
   }
 
@@ -64,6 +109,13 @@ export default class Commute extends Component {
       data.push(datum);
     }
 
-    return (<Chart data={data} />);
+    const setDate = date => this.setState({ currentDate: date });
+
+    return (
+      <div>
+        <DatePicker setDate={setDate} defaultDate={moment()} />
+        <Chart data={data} />
+      </div>
+    );
   }
 };
