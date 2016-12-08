@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import moment from 'moment';
 import throttle from 'lodash.throttle';
 
+import AddressPicker from './AddressPicker';
 import Chart from './Chart';
 import DatePicker from './DatePicker';
 import DirectionsLoader from './DirectionsLoader';
@@ -19,6 +20,8 @@ export default class Commute extends Component {
     this.directionsLoader = new DirectionsLoader(new this.props.GoogleMaps.DirectionsService);
 
     this.state = {
+      homeAddress: localStorage.homeAddress,
+      workAddress: localStorage.workAddress,
       currentDate: moment(),
       directionsResults: {}
     };
@@ -27,10 +30,15 @@ export default class Commute extends Component {
   }
 
   componentDidUpdate(prevProps, prevState) {
-    if (!prevState.currentDate.isSame(this.state.currentDate)) {
+    if (!prevState.currentDate.isSame(this.state.currentDate) ||
+        prevState.homeAddress !== this.state.homeAddress ||
+        prevState.workAddress !== this.state.workAddress) {
       this.directionsLoader.clear();
       this.setState({ directionsResults: {} });
       this.loadForDate(this.state.currentDate);
+
+      localStorage.setItem('homeAddress', homeAddress);
+      localStorage.setItem('workAddress', workAddress);
     }
   }
 
@@ -110,10 +118,17 @@ export default class Commute extends Component {
     }
 
     const setDate = date => this.setState({ currentDate: date });
+    const setHomeAddress = address => this.setState({ homeAddress: address });
+    const setWorkAddress = address => this.setState({ workAddress: address });
 
     return (
       <div>
         <DatePicker setDate={setDate} defaultDate={moment()} />
+        <AddressPicker
+            defaultHomeAddress={this.state.homeAddress}
+            defaultWorkAddress={this.state.workAddress}
+            setHomeAddress={setHomeAddress}
+            setWorkAddress={setWorkAddress} />
         <Chart data={data} />
       </div>
     );
