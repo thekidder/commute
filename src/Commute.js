@@ -17,14 +17,15 @@ export default class Commute extends Component {
   constructor(props) {
     super(props);
 
-    this.directionsLoader = new DirectionsLoader(new this.props.GoogleMaps.DirectionsService);
-
     this.state = {
       homeAddress: localStorage.homeAddress,
       workAddress: localStorage.workAddress,
       currentDate: moment(),
       directionsResults: {}
     };
+
+    this.directionsLoader = new DirectionsLoader(new this.props.GoogleMaps.DirectionsService);
+    this.directionsLoader.setAddresses(this.state.homeAddress, this.state.workAddress);
 
     this.loadForDate(this.state.currentDate);
   }
@@ -35,10 +36,11 @@ export default class Commute extends Component {
         prevState.workAddress !== this.state.workAddress) {
       this.directionsLoader.clear();
       this.setState({ directionsResults: {} });
+      this.directionsLoader.setAddresses(this.state.homeAddress, this.state.workAddress);
       this.loadForDate(this.state.currentDate);
 
-      localStorage.setItem('homeAddress', homeAddress);
-      localStorage.setItem('workAddress', workAddress);
+      localStorage.setItem('homeAddress', this.state.homeAddress || '');
+      localStorage.setItem('workAddress', this.state.workAddress || '');
     }
   }
 

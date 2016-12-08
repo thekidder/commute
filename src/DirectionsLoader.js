@@ -1,5 +1,3 @@
-import location from './location';
-
 const minRequestIntervalMs = 100;
 const maxRequestIntervalMs = 1000;
 const requestIntervalStepMs = 100;
@@ -12,6 +10,9 @@ export default class DirectionsLoader {
     this.loadTimeout = null;
     this.requestIntervalMs = minRequestIntervalMs;
     this.numSuccessfulRequests = 0;
+
+    this.homeAddress = '';
+    this.workAddress = '';
   }
 
   clear() {
@@ -22,6 +23,11 @@ export default class DirectionsLoader {
     }
   }
 
+  setAddresses(homeAddress, workAddress) {
+    this.homeAddress = homeAddress;
+    this.workAddress = workAddress;
+  }
+
   loadRouteAtDate(date, navigateToWork, loadFn) {
     this.loadRoute(date, 'bestguess', navigateToWork, loadFn);
     this.loadRoute(date, 'pessimistic', navigateToWork, loadFn);
@@ -29,12 +35,9 @@ export default class DirectionsLoader {
   }
 
   loadRoute(date, trafficModel, navigateToWork, loadFn) {
-    const home = location.home;
-    const work = location.work;
-
     const request = {
-      destination: navigateToWork ? work : home,
-      origin: navigateToWork ? home : work,
+      destination: navigateToWork ? this.workAddress : this.homeAddress,
+      origin: navigateToWork ? this.homeAddress : this.workAddress,
       travelMode: 'DRIVING',
       drivingOptions: {
         departureTime: date,
