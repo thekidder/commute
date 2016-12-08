@@ -1,8 +1,8 @@
 import React, { Component } from 'react';
+import throttle from 'lodash.throttle';
 
 import Chart from './Chart';
-
-import location from './location';
+import DirectionsLoader from './DirectionsLoader';
 
 function getDuration(response) {
   return response.routes[0].legs[0].duration_in_traffic.value;
@@ -12,56 +12,22 @@ export default class Commute extends Component {
   constructor(props) {
     super(props);
 
-    this.requestQueue = [];
+    this.directionsLoader = new DirectionsLoader(new this.props.GoogleMaps.DirectionsService);
 
     this.state = {
-      directionsService: new this.props.GoogleMaps.DirectionsService,
       directionsResults: {}
     };
 
-    this.load(new Date('December 5 2016 06:00:00'), new Date('December 5 2016 12:00:00'), true);
-    this.load(new Date('December 5 2016 14:00:00'), new Date('December 5 2016 20:00:00'), false);
-
-    setInterval(this.loadRequests.bind(this), 1000);
+    this.load(new Date('December 8 2016 06:00:00'), new Date('December 8 2016 13:00:00'), true);
+    this.load(new Date('December 8 2016 13:30:00'), new Date('December 8 2016 20:00:00'), false);
   }
 
-  load(startDate, endDate, to) {
+  load(startDate, endDate, navigateToWork) {
     const intervalMinutes = 30;
 
     for (var date = startDate; date <= endDate; date = new Date(date.getTime() + intervalMinutes * 60 * 1000)) {
-      console.log(`loading at ${date}`);
-      this.loadRouteAtDate(date)
+      this.directionsLoader.loadRouteAtDate(date, navigateToWork, this.loaded.bind(this));
     }
-  }
-
-  loadRequests() {
-    if (this.requestQueue.length) {
-      this.requestQueue[0]();
-      this.requestQueue = this.requestQueue.slice(1);
-    }
-  }
-
-  loadRouteAtDate(date, to) {
-    this.requestQueue.push(() => this.loadRoute(date, 'bestguess', to));
-    this.requestQueue.push(() => this.loadRoute(date, 'pessimistic', to));
-    this.requestQueue.push(() => this.loadRoute(date, 'optimistic', to));
-  }
-
-  loadRoute(date, trafficModel, to) {
-    const home = location.home;
-    const work = location.work;
-
-    const request = {
-      origin: to ? home : work,
-      destination: to ? work : home,
-      travelMode: 'DRIVING',
-      drivingOptions: {
-        departureTime: date,
-        trafficModel: trafficModel
-      },
-    };
-
-    this.state.directionsService.route(request, (response, status) => this.loaded(date, trafficModel, response, status));
   }
 
   loaded(date, trafficModel, response, status) {
@@ -79,14 +45,23 @@ export default class Commute extends Component {
     const data = [];
     for (const date in this.state.directionsResults) {
       const raw = this.state.directionsResults[date];
-      if (raw.pessimistic && raw.optimistic && raw.bestguess) {
-        data.push({
-          date: date,
-          optimistic: getDuration(raw.optimistic),
-          bestguess: getDuration(raw.bestguess),
-          pessimistic: getDuration(raw.pessimistic)
-        });
+      const datum = {
+        date: date
+      };
+
+      if (raw.pessimistic) {
+        datum.pessimistic = getDuration(raw.pessimistic);
       }
+
+      if (raw.optimistic) {
+        datum.optimistic = getDuration(raw.optimistic);
+      }
+
+      if (raw.bestguess) {
+        datum.bestguess = getDuration(raw.bestguess);
+      }
+
+      data.push(datum);
     }
 
     return (<Chart data={data} />);
