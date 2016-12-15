@@ -17,16 +17,31 @@ export default class Commute extends Component {
   constructor(props) {
     super(props);
 
+    let defaultDate = moment();
+
+    const endOfDay = defaultDate.clone().set({
+      hour: 20,
+      minute: 0
+    });
+
+    if (defaultDate.isAfter(endOfDay)) {
+      defaultDate.add('days', 1);
+    }
+
     this.state = {
       homeAddress: localStorage.homeAddress,
       workAddress: localStorage.workAddress,
-      currentDate: moment(),
+      currentDate: defaultDate,
+      beginDate: new Date(),
+      endDate: new Date(),
       directionsResults: {}
     };
 
     this.directionsLoader = new DirectionsLoader(new this.props.GoogleMaps.DirectionsService);
     this.directionsLoader.setAddresses(this.state.homeAddress, this.state.workAddress);
+  }
 
+  componentDidMount() {
     this.loadForDate(this.state.currentDate);
   }
 
@@ -69,18 +84,28 @@ export default class Commute extends Component {
 
     if(now.isBefore(middleOfDay)) {
       beginOfDay = moment.max(now, beginOfDay);
+      this.setState({ beginDate: beginOfDay.clone() });
+
       this.load(beginOfDay, middleOfDay, true);
     }
 
     middleOfDay.add(intervalMinutes, 'minutes');
     middleOfDay = moment.max(now, middleOfDay);
+
+    if(!now.isBefore(middleOfDay)) {
+      beginOfDay = middleOfDay.clone();
+      this.setState({ beginDate: beginOfDay });
+    }
+
     if (middleOfDay.isBefore(endOfDay)) {
       this.load(middleOfDay, endOfDay, false);
     }
+
+    this.setState({ endDate: endOfDay });
   }
 
   load(startDate, endDate, navigateToWork) {
-    for (var date = startDate; date <= endDate; date.add(intervalMinutes, 'minutes')) {
+    for (var date = startDate; !date.isAfter(endDate); date.add(intervalMinutes, 'minutes')) {
       this.directionsLoader.loadRouteAtDate(date.toDate(), navigateToWork, this.loaded.bind(this));
     }
   }
@@ -125,13 +150,16 @@ export default class Commute extends Component {
 
     return (
       <div>
-        <DatePicker setDate={setDate} defaultDate={moment()} />
+        <DatePicker setDate={setDate} defaultDate={this.state.currentDate} />
         <AddressPicker
             defaultHomeAddress={this.state.homeAddress}
             defaultWorkAddress={this.state.workAddress}
             setHomeAddress={setHomeAddress}
             setWorkAddress={setWorkAddress} />
-        <Chart data={data} />
+        <Chart
+            beginDate={this.state.beginDate}
+            endDate={this.state.endDate}
+            data={data} />
       </div>
     );
   }
