@@ -46,6 +46,18 @@ export default class Chart extends Component {
         .attr('stop-opacity', opacity);
   }
 
+  createPathSampler(path, numSamples) {
+    const length = path.getTotalLength();
+    const step = length / numSamples;
+    let distance = 0.0;
+    return function* samplePath() {
+      while(distance < length) {
+        yield path.getPointAtLength(distance);
+        distance += step;
+      }
+    }
+  }
+
   render() {
     const el = ReactFauxDOM.createElement('svg');
 
@@ -71,16 +83,14 @@ export default class Chart extends Component {
         .y(d => yScale(d.bestguess / 60))
         .curve(d3.curveMonotoneX);
 
-    const areaTop = d3.area()
+    const lineTop = d3.line()
         .x (d => xScale(new Date(d.date)))
-        .y0(d => yScale(d.bestguess / 60))
-        .y1(d => yScale(d.pessimistic / 60))
+        .y(d => yScale(d.pessimistic / 60))
         .curve(d3.curveMonotoneX);
 
-    const areaBottom = d3.area()
+    const lineBottom = d3.line()
         .x (d => xScale(new Date(d.date)))
-        .y0(d => yScale(d.optimistic / 60))
-        .y1(d => yScale(d.bestguess / 60))
+        .y(d => yScale(d.optimistic / 60))
         .curve(d3.curveMonotoneX);
 
     d3.select(el)
@@ -104,21 +114,28 @@ export default class Chart extends Component {
       .append('g')
         .attr('transform', `translate(${margins.left}, ${margins.top})`);
 
-    chart.append('path')
+    const bestguessPath = chart.append('path')
         .attr('class', 'line')
         .style('stroke', '#8884d8')
         .data([this.props.data.filter(d => !!d.bestguess)])
         .attr('d', line)
-    chart.append('path')
-        .attr('class', 'fill-top')
-        .style('fill', 'url(#pessimisticGradient)')
+    const pessimisticPath = chart.append('path')
+        .attr('class', 'line')
+        .style('stroke', '#ff7300')
         .data([this.props.data.filter(d => !!d.bestguess && !!d.pessimistic)])
-        .attr('d', areaTop);
-    chart.append('path')
-        .attr('class', 'fill-bottom')
-        .style('fill', 'url(#optimisticGradient)')
+        .attr('d', lineTop);
+    const optimisticPath = chart.append('path')
+        .attr('class', 'line')
+        .style('stroke', '#82ca9d')
         .data([this.props.data.filter(d => !!d.bestguess && !!d.optimistic)])
-        .attr('d', areaBottom);
+        .attr('d', lineBottom);
+
+    debugger;
+    const n = 200;
+    const bestguessSampler = this.createPathSampler(bestguessPath.node(), n);
+    const pessimisticSampler = this.createPathSampler(pessimisticPath.node(), n);
+    const optimisticSampler = this.createPathSampler(optimisticPath.node(), n);
+
 
     return el.toReact();
   }
