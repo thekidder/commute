@@ -4,6 +4,7 @@ import throttle from 'lodash.throttle';
 
 import AddressPicker from './AddressPicker';
 import Chart from './Chart';
+import D3Wrapper from './D3Wrapper';
 import DatePicker from './DatePicker';
 import DirectionsLoader from './DirectionsLoader';
 
@@ -156,7 +157,9 @@ export default class Commute extends Component {
             defaultWorkAddress={this.state.workAddress}
             setHomeAddress={setHomeAddress}
             setWorkAddress={setWorkAddress} />
-        <Chart
+        <D3Wrapper
+            chart={Chart}
+            height={600}
             beginDate={this.state.beginDate}
             endDate={this.state.endDate}
             data={data} />

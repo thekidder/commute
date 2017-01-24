@@ -1,16 +1,49 @@
 import * as d3 from 'd3';
 
-import React, { Component } from 'react';
-import ReactFauxDOM from 'react-faux-dom';
-
 import './chart.css';
-
-const width = 1200;
-const height = 600;
 
 const margins = { left: 50, right: 25, bottom: 50, top: 25 };
 
-export default class Chart extends Component {
+export default class Chart {
+  constructor(ref) {
+    this.ref = ref;
+
+    this.width = 0;
+    this.height = 0;
+
+    this.xScale = d3.scaleTime();
+    this.yScale = d3.scaleLinear();
+
+    this.svg = d3.select(this.ref)
+      .append('svg')
+        .style('width', '100%')
+        .style('height', '100%');
+
+    this.xAxisContainer = this.svg
+      .append('g');
+
+    this.yAxisContainer = this.svg
+      .append('g')
+        .attr('transform', `translate(${margins.left}, ${margins.top})`)
+
+    this.chart = this.svg
+      .append('g')
+        .attr('transform', `translate(${margins.left}, ${margins.top})`);
+
+    this.defs = this.svg
+      .append('defs');
+
+    this.bestguessPath = this.chart.append('path')
+        .attr('class', 'line')
+        .style('stroke', '#8884d8')
+    this.pessimisticPath = this.chart.append('path')
+        .attr('class', 'line')
+        .style('stroke', '#ff7300')
+    this.optimisticPath = this.chart.append('path')
+        .attr('class', 'line')
+        .style('stroke', '#82ca9d')
+  }
+
   maxRange(data) {
     let max = 0;
 
@@ -58,85 +91,68 @@ export default class Chart extends Component {
     }
   }
 
-  render() {
-    const el = ReactFauxDOM.createElement('svg');
+  resize(dimensions) {
+    this.svg
+        .attr('width', dimensions.width)
+        .attr('height', dimensions.height);
 
-    const defs = d3.select(el)
-      .append('defs');
+    this.xScale
+        .range([0, dimensions.width - margins.left - margins.right]);
 
-    const xScale = d3.scaleTime()
-        .domain([this.props.beginDate, this.props.endDate])
-        .range([0, width - margins.left - margins.right]);
+    this.yScale
+        .range([0, dimensions.height - margins.top - margins.bottom]);
 
-    const xAxis = d3.axisBottom(xScale)
+    this.xAxisContainer
+        .attr('transform', `translate(${margins.left}, ${dimensions.height - margins.bottom})`);
+  }
+
+  update(props) {
+    this.xScale
+        .domain([props.beginDate, props.endDate]);
+
+    const xAxis = d3.axisBottom(this.xScale)
         .ticks(d3.timeMinute.every(30));
 
-    const yScale = d3.scaleLinear()
-        .domain([this.maxRange(this.props.data), 0])
-        .range([0, height - margins.top - margins.bottom]);
+    this.yScale
+        .domain([this.maxRange(props.data), 0]);
 
-    const yAxis = d3.axisLeft(yScale)
+    const yAxis = d3.axisLeft(this.yScale)
         .tickFormat(time => `${time} min`);
 
     const line = d3.line()
-        .x(d => xScale(new Date(d.date)))
-        .y(d => yScale(d.bestguess / 60))
+        .x(d => this.xScale(new Date(d.date)))
+        .y(d => this.yScale(d.bestguess / 60))
         .curve(d3.curveMonotoneX);
 
     const lineTop = d3.line()
-        .x (d => xScale(new Date(d.date)))
-        .y(d => yScale(d.pessimistic / 60))
+        .x(d => this.xScale(new Date(d.date)))
+        .y(d => this.yScale(d.pessimistic / 60))
         .curve(d3.curveMonotoneX);
 
     const lineBottom = d3.line()
-        .x (d => xScale(new Date(d.date)))
-        .y(d => yScale(d.optimistic / 60))
+        .x(d => this.xScale(new Date(d.date)))
+        .y(d => this.yScale(d.optimistic / 60))
         .curve(d3.curveMonotoneX);
 
-    d3.select(el)
-        .attr('width', width)
-        .attr('height', height);
+    this.xAxisContainer.call(xAxis);
+    this.yAxisContainer.call(yAxis);
 
-    const pessimisticGradient = this.addGradientWithColors(defs, 'pessimisticGradient', '#ff7300', '#8884d8');
-    const optimisticGradient = this.addGradientWithColors(defs, 'optimisticGradient', '#8884d8', '#82ca9d' );
+    const pessimisticGradient = this.addGradientWithColors(this.defs, 'pessimisticGradient', '#ff7300', '#8884d8');
+    const optimisticGradient = this.addGradientWithColors(this.defs, 'optimisticGradient', '#8884d8', '#82ca9d' );
 
-    d3.select(el)
-      .append('g')
-        .attr('transform', `translate(${margins.left}, ${height - margins.bottom})`)
-        .call(xAxis);
-
-    d3.select(el)
-      .append('g')
-        .attr('transform', `translate(${margins.left}, ${margins.top})`)
-        .call(yAxis);
-
-    const chart = d3.select(el)
-      .append('g')
-        .attr('transform', `translate(${margins.left}, ${margins.top})`);
-
-    const bestguessPath = chart.append('path')
-        .attr('class', 'line')
-        .style('stroke', '#8884d8')
-        .data([this.props.data.filter(d => !!d.bestguess)])
+    this.bestguessPath
+        .data([props.data.filter(d => !!d.bestguess)])
         .attr('d', line)
-    const pessimisticPath = chart.append('path')
-        .attr('class', 'line')
-        .style('stroke', '#ff7300')
-        .data([this.props.data.filter(d => !!d.bestguess && !!d.pessimistic)])
+    this.pessimisticPath
+        .data([props.data.filter(d => !!d.bestguess && !!d.pessimistic)])
         .attr('d', lineTop);
-    const optimisticPath = chart.append('path')
-        .attr('class', 'line')
-        .style('stroke', '#82ca9d')
-        .data([this.props.data.filter(d => !!d.bestguess && !!d.optimistic)])
+    this.optimisticPath
+        .data([props.data.filter(d => !!d.bestguess && !!d.optimistic)])
         .attr('d', lineBottom);
 
-    debugger;
     const n = 200;
-    const bestguessSampler = this.createPathSampler(bestguessPath.node(), n);
-    const pessimisticSampler = this.createPathSampler(pessimisticPath.node(), n);
-    const optimisticSampler = this.createPathSampler(optimisticPath.node(), n);
-
-
-    return el.toReact();
+    const bestguessSampler = this.createPathSampler(this.bestguessPath.node(), n);
+    const pessimisticSampler = this.createPathSampler(this.pessimisticPath.node(), n);
+    const optimisticSampler = this.createPathSampler(this.optimisticPath.node(), n);
   }
 };
