@@ -1,4 +1,6 @@
 import * as d3 from 'd3';
+import flatten from 'lodash.flatten';
+import zip from 'lodash.zip';
 
 import './chart.css';
 
@@ -42,6 +44,20 @@ export default class Chart {
     this.optimisticPath = this.chart.append('path')
         .attr('class', 'line')
         .style('stroke', '#82ca9d')
+
+    this.addGradientWithColors(this.defs, 'pessimisticGradient', '#ff7300', '#8884d8');
+    this.addGradientWithColors(this.defs, 'optimisticGradient', '#8884d8', '#82ca9d' );
+
+    this.optimisticGradient = this.svg
+      .append('g')
+        .attr('id', 'optimisticGradient')
+        .attr('transform', `translate(${margins.left}, ${margins.top})`);
+
+    this.pessimisticGradient = this.svg
+      .append('g')
+        .attr('id', 'pessimisticGradient')
+        .attr('transform', `translate(${margins.left}, ${margins.top})`);
+
   }
 
   maxRange(data) {
@@ -82,11 +98,9 @@ export default class Chart {
   createPathSampler(path, numSamples) {
     const length = path.getTotalLength();
     const step = length / numSamples;
-    let distance = 0.0;
     return function* samplePath() {
-      while(distance < length) {
-        yield path.getPointAtLength(distance);
-        distance += step;
+      for(let i = 0; i < numSamples; i++) {
+        yield path.getPointAtLength(i * step);
       }
     }
   }
@@ -137,22 +151,57 @@ export default class Chart {
     this.xAxisContainer.call(xAxis);
     this.yAxisContainer.call(yAxis);
 
-    const pessimisticGradient = this.addGradientWithColors(this.defs, 'pessimisticGradient', '#ff7300', '#8884d8');
-    const optimisticGradient = this.addGradientWithColors(this.defs, 'optimisticGradient', '#8884d8', '#82ca9d' );
-
     this.bestguessPath
-        .data([props.data.filter(d => !!d.bestguess)])
+        .data([props.data])
         .attr('d', line)
     this.pessimisticPath
-        .data([props.data.filter(d => !!d.bestguess && !!d.pessimistic)])
+        .data([props.data])
         .attr('d', lineTop);
     this.optimisticPath
-        .data([props.data.filter(d => !!d.bestguess && !!d.optimistic)])
+        .data([props.data])
         .attr('d', lineBottom);
 
-    const n = 200;
+    const n = 1000;
     const bestguessSampler = this.createPathSampler(this.bestguessPath.node(), n);
     const pessimisticSampler = this.createPathSampler(this.pessimisticPath.node(), n);
     const optimisticSampler = this.createPathSampler(this.optimisticPath.node(), n);
+
+    this.renderGradient(this.optimisticGradient, '#optimisticGradient', bestguessSampler, optimisticSampler);    
+    this.renderGradient(this.pessimisticGradient, '#pessimisticGradient', pessimisticSampler, bestguessSampler);    
+  }
+
+  renderGradient(container, gradient, topLine, bottomLine) {
+    const data = zip([...topLine()], [...bottomLine()]);
+
+    if (data.length > 1) {
+      const quads = d3.range(data.length - 1).map(i => {
+        return flatten([data[i], data[i + 1]]);
+      });
+
+      function printPoint(p) {
+        return `${Math.round(p.x)},${Math.round(p.y)}`;
+      }
+
+      function createPath(quad) {
+        return `M${printPoint(quad[0])}L${printPoint(quad[2])}L${printPoint(quad[3])}L${printPoint(quad[1])}Z`;
+      }
+
+      const selection = container
+        .selectAll('path')
+          .data(quads)
+          .style('fill', `url(${gradient})`)
+          .attr('d', d => createPath(d));
+
+      selection
+        .enter()
+        .append('path')
+          .style('fill', `url(${gradient})`)
+          .attr('d', d => createPath(d));
+
+      selection
+        .exit()
+          .remove();
+
+    }
   }
 };

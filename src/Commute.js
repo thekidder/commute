@@ -126,23 +126,17 @@ export default class Commute extends Component {
     const data = [];
     for (const date in this.state.directionsResults) {
       const raw = this.state.directionsResults[date];
-      const datum = {
-        date: date
-      };
+      if (raw.bestguess && raw.pessimistic && raw.optimistic) {
+        const datum = {
+          date: date
+        };
 
-      if (raw.pessimistic) {
-        datum.pessimistic = getDuration(raw.pessimistic);
-      }
-
-      if (raw.optimistic) {
-        datum.optimistic = getDuration(raw.optimistic);
-      }
-
-      if (raw.bestguess) {
         datum.bestguess = getDuration(raw.bestguess);
-      }
+        datum.pessimistic = getDuration(raw.pessimistic);
+        datum.optimistic = getDuration(raw.optimistic);
 
-      data.push(datum);
+        data.push(datum);
+      }
     }
 
     const setDate = date => this.setState({ currentDate: date });
