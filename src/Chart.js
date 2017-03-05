@@ -123,6 +123,13 @@ export default class Chart {
     this.numGradientSegments = (dimensions.width - margins.left - margins.right) / 2;
   }
 
+  createCurve(attrName) {
+    return d3.line()
+        .x(d => this.xScale(new Date(d.date)))
+        .y(d => this.yScale(d[attrName] / 60))
+        .curve(d3.curveMonotoneX);
+  }
+
   update(props) {
     this.xScale
         .domain([props.beginDate, props.endDate]);
@@ -136,20 +143,9 @@ export default class Chart {
     const yAxis = d3.axisLeft(this.yScale)
         .tickFormat(time => `${time} min`);
 
-    const line = d3.line()
-        .x(d => this.xScale(new Date(d.date)))
-        .y(d => this.yScale(d.bestguess / 60))
-        .curve(d3.curveMonotoneX);
-
-    const lineTop = d3.line()
-        .x(d => this.xScale(new Date(d.date)))
-        .y(d => this.yScale(d.pessimistic / 60))
-        .curve(d3.curveMonotoneX);
-
-    const lineBottom = d3.line()
-        .x(d => this.xScale(new Date(d.date)))
-        .y(d => this.yScale(d.optimistic / 60))
-        .curve(d3.curveMonotoneX);
+    const line = this.createCurve('bestguess');
+    const lineTop = this.createCurve('pessimistic');
+    const lineBottom = this.createCurve('optimistic');
 
     this.xAxisContainer.call(xAxis);
     this.yAxisContainer.call(yAxis);

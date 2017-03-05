@@ -43,10 +43,14 @@ export default class Commute extends Component {
   }
 
   componentDidMount() {
-    this.loadForDate(this.state.currentDate);
+    if (!this.props.debugData) {
+      this.loadForDate(this.state.currentDate);
+    }
   }
 
   componentDidUpdate(prevProps, prevState) {
+    if (this.props.debugData) return;
+
     if (!prevState.currentDate.isSame(this.state.currentDate) ||
         prevState.homeAddress !== this.state.homeAddress ||
         prevState.workAddress !== this.state.workAddress) {
@@ -122,7 +126,9 @@ export default class Commute extends Component {
     }
   }
 
-  render() {
+  getData() {
+    if (this.props.debugData) return this.props.debugData;
+
     const data = [];
     for (const date in this.state.directionsResults) {
       const raw = this.state.directionsResults[date];
@@ -139,6 +145,14 @@ export default class Commute extends Component {
       }
     }
 
+    return data;
+  }
+
+  render() {
+    const data = this.getData();
+    const beginDate = this.props.debugData ? new Date(this.props.debugData[0].date) : this.state.beginDate;
+    const endDate = this.props.debugData ? new Date(this.props.debugData[this.props.debugData.length - 1].date) : this.state.endDate;
+
     const setDate = date => this.setState({ currentDate: date });
     const setHomeAddress = address => this.setState({ homeAddress: address });
     const setWorkAddress = address => this.setState({ workAddress: address });
@@ -154,8 +168,8 @@ export default class Commute extends Component {
         <D3Wrapper
             chart={Chart}
             height={600}
-            beginDate={this.state.beginDate}
-            endDate={this.state.endDate}
+            beginDate={beginDate}
+            endDate={endDate}
             data={data} />
       </div>
     );
