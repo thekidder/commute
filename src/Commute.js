@@ -75,7 +75,7 @@ export default class Commute extends Component {
 
     const endOfDay = date.clone().set({
       hour: 20,
-      minute: 0
+      minute: 1
     });
 
     let middleOfDay = date.clone().set({
