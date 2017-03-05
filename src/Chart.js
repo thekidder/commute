@@ -95,14 +95,33 @@ export default class Chart {
         .attr('stop-opacity', opacity);
   }
 
-  createPathSampler(path, numSamples) {
-    const length = path.getTotalLength();
-    const step = length / numSamples;
+  createPathPairSampler(path1, path2, width) {
+    // this needs to be sufficiently higher than the width to account for charts with higher slopes. We want to sample
+    // at each x value; since we can't do that directly we sample at a higher frequency and discard points until we've
+    // advanced sufficiently along the x axis.
+    const numSteps = width * 2;
+
+    const step1 = path1.getTotalLength() / numSteps;
+    const step2 = path2.getTotalLength() / numSteps;
     return function* samplePath() {
-      for(let i = 0; i < numSamples; i++) {
-        yield path.getPointAtLength(i * step);
+      yield [path1.getPointAtLength(0), path2.getPointAtLength(0)];
+
+      let i = 0, j = 0;
+      for (let desiredX = 0; desiredX < width; ++desiredX) {
+        while (path1.getPointAtLength(i * step1).x < desiredX + 1 && i < numSteps) {
+          i++;
+        }
+
+        while (path2.getPointAtLength(j * step2).x < desiredX + 1 && j < numSteps) {
+          j++;
+        }
+
+        yield [path1.getPointAtLength(i * step1), path2.getPointAtLength(j * step2)];
       }
-      yield path.getPointAtLength(length);
+      yield [
+        path1.getPointAtLength(path1.getTotalLength()),
+        path2.getPointAtLength(path2.getTotalLength())
+      ];
     }
   }
 
@@ -120,7 +139,7 @@ export default class Chart {
     this.xAxisContainer
         .attr('transform', `translate(${margins.left}, ${dimensions.height - margins.bottom})`);
 
-    this.numGradientSegments = (dimensions.width - margins.left - margins.right) / 2;
+    this.totalWidth = dimensions.width - margins.left - margins.right;
   }
 
   createCurve(attrName) {
@@ -160,23 +179,23 @@ export default class Chart {
         .data([props.data])
         .attr('d', lineBottom);
 
-    const bestguessSampler = this.createPathSampler(this.bestguessPath.node(), this.numGradientSegments);
-    const pessimisticSampler = this.createPathSampler(this.pessimisticPath.node(), this.numGradientSegments);
-    const optimisticSampler = this.createPathSampler(this.optimisticPath.node(), this.numGradientSegments);
+    const topSampler = this.createPathPairSampler(this.bestguessPath.node(), this.pessimisticPath.node(), this.totalWidth);
+    const bottomSampler = this.createPathPairSampler(this.bestguessPath.node(), this.optimisticPath.node(), this.totalWidth);
 
-    this.renderGradient(this.optimisticGradient, '#optimisticGradient', bestguessSampler, optimisticSampler);    
-    this.renderGradient(this.pessimisticGradient, '#pessimisticGradient', pessimisticSampler, bestguessSampler);    
+    this.renderGradient(this.optimisticGradient, '#optimisticGradient', bottomSampler);
+    this.renderGradient(this.pessimisticGradient, '#pessimisticGradient', topSampler);
   }
 
-  renderGradient(container, gradient, topLine, bottomLine) {
-    const data = zip([...topLine()], [...bottomLine()]);
+  renderGradient(container, gradient, sampler) {
+    const data = [...sampler()];
+    console.log(`rendering gradient with ${data.length} points`);
 
     // round all x coords to whole numbers to avoid rendering artifacts. Don't do this for the first and last
     // points to ensure the gradient bounds map exactly to the start and end of the spline.
     if (data.length > 2) {
       for (let i = 1; i < data.length - 1; ++i) {
-        data[i][0].x = Math.round(data[i][0].x);
-        data[i][1].x = Math.round(data[i][1].x);
+        data[i][0].x = Math.floor(data[i][0].x);
+        data[i][1].x = Math.floor(data[i][1].x);
 
         data[i][0].y = Math.round(data[i][0].y);
         data[i][1].y = Math.round(data[i][1].y);
