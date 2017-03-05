@@ -1,5 +1,6 @@
 import * as d3 from 'd3';
 import flatten from 'lodash.flatten';
+import moment from 'moment';
 import zip from 'lodash.zip';
 
 import './chart.css';
@@ -73,7 +74,7 @@ export default class Chart {
   }
 
   addGradientWithColors(defsElement, id, topColor, bottomColor) {
-    const opacity = 0.5;
+    const opacity = 0.25;
 
     const gradient = defsElement
       .append('linearGradient')
@@ -154,7 +155,8 @@ export default class Chart {
         .domain([props.beginDate, props.endDate]);
 
     const xAxis = d3.axisBottom(this.xScale)
-        .ticks(d3.timeMinute.every(30));
+        .ticks(d3.timeMinute.every(60))
+        .tickFormat(date => moment(date).format('ha'))
 
     this.yScale
         .domain([this.maxRange(props.data), 0]);
