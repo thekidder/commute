@@ -102,6 +102,7 @@ export default class Chart {
       for(let i = 0; i < numSamples; i++) {
         yield path.getPointAtLength(i * step);
       }
+      yield path.getPointAtLength(length);
     }
   }
 
@@ -118,6 +119,8 @@ export default class Chart {
 
     this.xAxisContainer
         .attr('transform', `translate(${margins.left}, ${dimensions.height - margins.bottom})`);
+
+    this.numGradientSegments = (dimensions.width - margins.left - margins.right) / 2;
   }
 
   update(props) {
@@ -161,10 +164,9 @@ export default class Chart {
         .data([props.data])
         .attr('d', lineBottom);
 
-    const n = 1000;
-    const bestguessSampler = this.createPathSampler(this.bestguessPath.node(), n);
-    const pessimisticSampler = this.createPathSampler(this.pessimisticPath.node(), n);
-    const optimisticSampler = this.createPathSampler(this.optimisticPath.node(), n);
+    const bestguessSampler = this.createPathSampler(this.bestguessPath.node(), this.numGradientSegments);
+    const pessimisticSampler = this.createPathSampler(this.pessimisticPath.node(), this.numGradientSegments);
+    const optimisticSampler = this.createPathSampler(this.optimisticPath.node(), this.numGradientSegments);
 
     this.renderGradient(this.optimisticGradient, '#optimisticGradient', bestguessSampler, optimisticSampler);    
     this.renderGradient(this.pessimisticGradient, '#pessimisticGradient', pessimisticSampler, bestguessSampler);    
@@ -173,13 +175,25 @@ export default class Chart {
   renderGradient(container, gradient, topLine, bottomLine) {
     const data = zip([...topLine()], [...bottomLine()]);
 
+    // round all x coords to whole numbers to avoid rendering artifacts. Don't do this for the first and last
+    // points to ensure the gradient bounds map exactly to the start and end of the spline.
+    if (data.length > 2) {
+      for (let i = 1; i < data.length - 1; ++i) {
+        data[i][0].x = Math.round(data[i][0].x);
+        data[i][1].x = Math.round(data[i][1].x);
+
+        data[i][0].y = Math.round(data[i][0].y);
+        data[i][1].y = Math.round(data[i][1].y);
+      }
+    }
+
     if (data.length > 1) {
       const quads = d3.range(data.length - 1).map(i => {
         return flatten([data[i], data[i + 1]]);
       });
 
       function printPoint(p) {
-        return `${Math.round(p.x)},${Math.round(p.y)}`;
+        return `${p.x},${p.y}`;
       }
 
       function createPath(quad) {
