@@ -1,4 +1,4 @@
-import * as d3 from 'd3';
+import {scaleTime, scaleLinear, select, line, curveMonotoneX, timeMinute, axisBottom, axisLeft, range} from 'd3';
 import flatten from 'lodash.flatten';
 import moment from 'moment';
 import zip from 'lodash.zip';
@@ -14,10 +14,10 @@ export default class Chart {
     this.width = 0;
     this.height = 0;
 
-    this.xScale = d3.scaleTime();
-    this.yScale = d3.scaleLinear();
+    this.xScale = scaleTime();
+    this.yScale = scaleLinear();
 
-    this.svg = d3.select(this.ref)
+    this.svg = select(this.ref)
       .append('svg')
         .style('width', '100%')
         .style('height', '100%');
@@ -144,24 +144,24 @@ export default class Chart {
   }
 
   createCurve(attrName) {
-    return d3.line()
+    return line()
         .x(d => this.xScale(new Date(d.date)))
         .y(d => this.yScale(d[attrName] / 60))
-        .curve(d3.curveMonotoneX);
+        .curve(curveMonotoneX);
   }
 
   update(props) {
     this.xScale
         .domain([props.beginDate, props.endDate]);
 
-    const xAxis = d3.axisBottom(this.xScale)
-        .ticks(d3.timeMinute.every(60))
+    const xAxis = axisBottom(this.xScale)
+        .ticks(timeMinute.every(60))
         .tickFormat(date => moment(date).format('ha'))
 
     this.yScale
         .domain([this.maxRange(props.data), 0]);
 
-    const yAxis = d3.axisLeft(this.yScale)
+    const yAxis = axisLeft(this.yScale)
         .tickFormat(time => `${time} min`);
 
     const line = this.createCurve('bestguess');
@@ -205,7 +205,7 @@ export default class Chart {
     }
 
     if (data.length > 1) {
-      const quads = d3.range(data.length - 1).map(i => {
+      const quads = range(data.length - 1).map(i => {
         return flatten([data[i], data[i + 1]]);
       });
 
