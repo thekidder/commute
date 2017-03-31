@@ -30,6 +30,7 @@ export default class Commute extends Component {
     }
 
     this.state = {
+      enableToday: moment().isBefore(endOfDay),
       homeAddress: localStorage.homeAddress,
       workAddress: localStorage.workAddress,
       currentDate: defaultDate,
@@ -159,18 +160,27 @@ export default class Commute extends Component {
 
     return (
       <div>
-        <DatePicker setDate={setDate} defaultDate={this.state.currentDate} />
-        <AddressPicker
-            defaultHomeAddress={this.state.homeAddress}
-            defaultWorkAddress={this.state.workAddress}
-            setHomeAddress={setHomeAddress}
-            setWorkAddress={setWorkAddress} />
-        <D3Wrapper
-            chart={Chart}
-            height={600}
-            beginDate={beginDate}
-            endDate={endDate}
-            data={data} />
+        <div className='row mx-2 mt-2'>
+          <form className='form form-inline'>
+            <DatePicker enableToday={this.state.enableToday} setDate={setDate} defaultDate={this.state.currentDate} />
+            <AddressPicker
+                name='Home'
+                defaultAddress={this.state.homeAddress}
+                setAddress={setHomeAddress} />
+            <AddressPicker
+                name='Work'
+                defaultAddress={this.state.workAddress}
+                setAddress={setWorkAddress} />
+          </form>
+        </div>
+        <div className='row'>
+          <D3Wrapper
+              chart={Chart}
+              height={600}
+              beginDate={beginDate}
+              endDate={endDate}
+              data={data} />
+      </div>
       </div>
     );
   }

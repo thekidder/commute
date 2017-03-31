@@ -1,7 +1,7 @@
 import GoogleMapsLoader from 'google-maps';
 import React, { Component } from 'react';
 
-import blueprintCss from '@blueprintjs/core/dist/blueprint.css';
+import bootstrap from 'bootstrap/dist/css/bootstrap.min.css';
 
 import apiKey from './api-key';
 import Commute from './Commute'
@@ -59,7 +59,11 @@ export default class App extends Component {
   render() {
     const debugData = window.location.search.indexOf('debugData') > 0 ? defaultData : null;
     if (this.state.loaded) {
-      return (<Commute GoogleMaps={this.state.googleApi.maps} debugData={debugData} />);
+      return (
+        <div className='container-fluid'>
+          <Commute GoogleMaps={this.state.googleApi.maps} debugData={debugData} />
+        </div>
+      );
     } else {
       return (<p>Loading...</p>);  
     }

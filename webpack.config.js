@@ -29,16 +29,8 @@ module.exports = {
         include: [path.join(__dirname, 'src'), path.join(__dirname, 'node_modules')]
       },
       {
-        test: /\.woff(\d+)?$/,
-        loader: 'url-loader?limit=10000&mimetype=application/font-woff'
-      },
-      {
-        test: /\.ttf$/,
-        loader: 'url-loader?limit=10000&mimetype=application/octet-stream'
-      },
-      {
-        test: /\.eot$/,
-        loader: 'file-loader'
+        test: /\.(otf|eot|svg|ttf|woff|woff2)?$/,
+        loader: 'url?limit=8192'
       }
     ]
   }

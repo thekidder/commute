@@ -63,7 +63,7 @@ class D3Wrapper extends React.Component {
       <Measure
           whitelist={['width', 'height']}
           onMeasure={this.resizeDebounced.bind(this)}>
-        <div className='chart' style={{height: this.props.height}} ref={this.getChartRef.bind(this)}></div>
+        <div className='chart' style={{height: this.props.height, width: '100%'}} ref={this.getChartRef.bind(this)}></div>
       </Measure>
     );
   }

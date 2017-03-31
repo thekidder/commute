@@ -1,38 +1,40 @@
-import { InputGroup } from "@blueprintjs/core";
 import React, { Component } from 'react';
+import Octicon from 'react-octicon'
 
 export default class AddressPicker extends Component {
   constructor(props) {
     super(props);
 
     this.state = {
-      homeAddress: props.defaultHomeAddress,
-      workAddress: props.defaultWorkAddress
+      address: props.defaultAddress
     }
   }
 
   componentDidUpdate(prevProps, prevState) {
-    if (prevState.homeAddress !== this.state.homeAddress) {
-      this.props.setHomeAddress(this.state.homeAddress);
+    if (prevState.address !== this.state.address) {
+      this.props.setAddress(this.state.address);
     }
+  }
 
-    if (prevState.workAddress !== this.state.workAddress) {
-      this.props.setWorkAddress(this.state.workAddress);
+  octiconName(name) {
+    if (name === 'Work') {
+      return 'briefcase';
+    } else if (name === 'Home') {
+      return 'home';
+    } else {
+      return '';
     }
   }
 
   render() {
-    const setHomeAddress = e => this.setState({ homeAddress: e.target.value });
-    const setWorkAddress = e => this.setState({ workAddress: e.target.value });
+    const setAddress = e => this.setState({ address: e.target.value });
 
     return (
-      <div>
-        <label className='pt-label pt-inline' style={{float: 'left'}}>
-          <InputGroup leftIconName='home' value={this.state.homeAddress} onChange={setHomeAddress} />
-        </label>
-        <label className='pt-label pt-inline'>
-          <InputGroup leftIconName='office' value={this.state.workAddress} onChange={setWorkAddress} />
-        </label>
+      <div className='input-group mr-2 mb-2' style={{minWidth: 320}}>
+        <div className='input-group-addon'>
+          <Octicon name={this.octiconName(this.props.name)} />
+        </div>
+        <input type='text' className='form-control' placeholder={this.props.name} value={this.state.address} onChange={setAddress} />
       </div>
     );
   }

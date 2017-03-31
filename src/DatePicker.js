@@ -1,4 +1,3 @@
-import { Button } from "@blueprintjs/core";
 import React, { Component } from 'react';
 import moment from 'moment';
 
@@ -26,9 +25,20 @@ export default class DatePicker extends Component {
     const isToday = this.state.currentDate.isSame(this.today);
 
     return (
-      <div className="pt-button-group" style={{float: 'left'}}>
-        <Button className={isToday ? 'pt-active' : ''} text="Today" onClick={setToday} />
-        <Button className={!isToday ? 'pt-active' : ''} text="Tomorrow" onClick={setTomorrow} />
+      <div className='btn-group mr-2 mb-2' role='group' ariaLabel='Choose date'>
+        <button
+            onClick={setToday}
+            type='button'
+            className={isToday ? 'btn btn-secondary active' : 'btn btn-secondary'}
+            disabled={!this.props.enableToday}>
+          Today
+        </button>
+        <button
+            onClick={setTomorrow}
+            type='button'
+            className={!isToday ? 'btn btn-secondary active' : 'btn btn-secondary'}>
+          Tomorrow
+        </button>
       </div>
     );
   }
